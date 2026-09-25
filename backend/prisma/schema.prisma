@@ -1,0 +1,261 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum Role {
+  USER
+  ADMIN
+}
+
+enum QuestionType {
+  SINGLE_CHOICE
+  MULTIPLE_CHOICE
+  TRUE_FALSE
+  NUMERICAL
+}
+
+enum Difficulty {
+  EASY
+  MEDIUM
+  HARD
+}
+
+enum TestType {
+  TOPIC
+  SECTION
+  MIXED
+  FULL_LENGTH
+  DAILY
+  PRACTICE
+}
+
+enum TestStatus {
+  DRAFT
+  PUBLISHED
+  ARCHIVED
+}
+
+enum AttemptStatus {
+  IN_PROGRESS
+  COMPLETED
+  ABANDONED
+}
+
+model User {
+  id           String        @id @default(uuid())
+  name         String
+  email        String        @unique
+  password     String
+  role         Role          @default(USER)
+  profileImage String?
+  isActive     Boolean       @default(true)
+  createdAt    DateTime      @default(now())
+  updatedAt    DateTime      @updatedAt
+  attempts     TestAttempt[]
+  bookmarks    Bookmark[]
+  notifications Notification[]
+
+  @@index([email])
+}
+
+model Section {
+  id          String     @id @default(uuid())
+  name        String     @unique
+  description String?
+  icon        String?
+  image       String?
+  isActive    Boolean    @default(true)
+  createdAt   DateTime   @default(now())
+  updatedAt   DateTime   @updatedAt
+  topics      Topic[]
+  questions   Question[]
+  tests       Test[]
+}
+
+model Topic {
+  id          String      @id @default(uuid())
+  sectionId   String
+  section     Section     @relation(fields: [sectionId], references: [id], onDelete: Cascade)
+  name        String
+  description String?
+  isActive    Boolean     @default(true)
+  createdAt   DateTime    @default(now())
+  updatedAt   DateTime    @updatedAt
+  subTopics   SubTopic[]
+  questions   Question[]
+  tests       Test[]
+
+  @@index([sectionId])
+}
+
+model SubTopic {
+  id          String     @id @default(uuid())
+  topicId     String
+  topic       Topic      @relation(fields: [topicId], references: [id], onDelete: Cascade)
+  name        String
+  description String?
+  isActive    Boolean    @default(true)
+  createdAt   DateTime   @default(now())
+  updatedAt   DateTime   @updatedAt
+  questions   Question[]
+
+  @@index([topicId])
+}
+
+model Exam {
+  id          String   @id @default(uuid())
+  name        String   @unique
+  description String?
+  isActive    Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  tests       Test[]
+}
+
+model Question {
+  id            String           @id @default(uuid())
+  sectionId     String
+  section       Section          @relation(fields: [sectionId], references: [id], onDelete: Cascade)
+  topicId       String
+  topic         Topic            @relation(fields: [topicId], references: [id], onDelete: Cascade)
+  subTopicId    String?
+  subTopic      SubTopic?        @relation(fields: [subTopicId], references: [id], onDelete: SetNull)
+  questionText  String
+  questionType  QuestionType     @default(SINGLE_CHOICE)
+  difficulty    Difficulty       @default(MEDIUM)
+  explanation   String?
+  marks         Float            @default(1.0)
+  negativeMarks Float            @default(0.25)
+  imageUrl      String?
+  isActive      Boolean          @default(true)
+  createdAt     DateTime         @default(now())
+  updatedAt     DateTime         @updatedAt
+  options       QuestionOption[]
+  testQuestions TestQuestion[]
+  attemptAnswers AttemptAnswer[]
+  bookmarks     Bookmark[]
+
+  @@index([sectionId])
+  @@index([topicId])
+  @@index([difficulty])
+}
+
+model QuestionOption {
+  id          String          @id @default(uuid())
+  questionId  String
+  question    Question        @relation(fields: [questionId], references: [id], onDelete: Cascade)
+  optionText  String
+  imageUrl    String?
+  isCorrect   Boolean         @default(false)
+  optionOrder Int             @default(0)
+  answers     AttemptAnswer[]
+
+  @@index([questionId])
+}
+
+model Test {
+  id              String         @id @default(uuid())
+  title           String
+  description     String?
+  examId          String?
+  exam            Exam?          @relation(fields: [examId], references: [id], onDelete: SetNull)
+  sectionId       String?
+  section         Section?       @relation(fields: [sectionId], references: [id], onDelete: SetNull)
+  topicId         String?
+  topic           Topic?         @relation(fields: [topicId], references: [id], onDelete: SetNull)
+  duration        Int            // in minutes
+  totalQuestions  Int
+  totalMarks      Float
+  negativeMarking Float          @default(0.25)
+  difficulty      Difficulty     @default(MEDIUM)
+  testType        TestType       @default(TOPIC)
+  status          TestStatus     @default(PUBLISHED)
+  createdAt       DateTime       @default(now())
+  updatedAt       DateTime       @updatedAt
+  testQuestions   TestQuestion[]
+  attempts        TestAttempt[]
+
+  @@index([testType])
+  @@index([status])
+}
+
+model TestQuestion {
+  id            String   @id @default(uuid())
+  testId        String
+  test          Test     @relation(fields: [testId], references: [id], onDelete: Cascade)
+  questionId    String
+  question      Question @relation(fields: [questionId], references: [id], onDelete: Cascade)
+  questionOrder Int      @default(0)
+
+  @@unique([testId, questionId])
+  @@index([testId])
+  @@index([questionId])
+}
+
+model TestAttempt {
+  id              String          @id @default(uuid())
+  userId          String
+  user            User            @relation(fields: [userId], references: [id], onDelete: Cascade)
+  testId          String
+  test            Test            @relation(fields: [testId], references: [id], onDelete: Cascade)
+  startTime       DateTime        @default(now())
+  endTime         DateTime?
+  timeTaken       Int?            // in seconds
+  score           Float?          @default(0)
+  percentage      Float?          @default(0)
+  correctAnswers  Int?            @default(0)
+  incorrectAnswers Int?           @default(0)
+  unattempted     Int?            @default(0)
+  accuracy        Float?          @default(0)
+  status          AttemptStatus   @default(IN_PROGRESS)
+  createdAt       DateTime        @default(now())
+  answers         AttemptAnswer[]
+
+  @@index([userId])
+  @@index([testId])
+}
+
+model AttemptAnswer {
+  id               String          @id @default(uuid())
+  attemptId        String
+  attempt          TestAttempt     @relation(fields: [attemptId], references: [id], onDelete: Cascade)
+  questionId       String
+  question         Question        @relation(fields: [questionId], references: [id], onDelete: Cascade)
+  selectedOptionId String?
+  selectedOption   QuestionOption? @relation(fields: [selectedOptionId], references: [id], onDelete: SetNull)
+  isCorrect        Boolean?
+  marksObtained    Float?          @default(0)
+  timeSpent        Int?            @default(0) // in seconds
+
+  @@unique([attemptId, questionId])
+  @@index([attemptId])
+}
+
+model Bookmark {
+  id         String   @id @default(uuid())
+  userId     String
+  user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  questionId String
+  question   Question @relation(fields: [questionId], references: [id], onDelete: Cascade)
+  createdAt  DateTime @default(now())
+
+  @@unique([userId, questionId])
+  @@index([userId])
+}
+
+model Notification {
+  id        String   @id @default(uuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  title     String
+  message   String
+  isRead    Boolean  @default(false)
+  createdAt DateTime @default(now())
+
+  @@index([userId])
+}
