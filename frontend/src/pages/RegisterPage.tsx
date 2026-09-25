@@ -55,6 +55,7 @@ export const RegisterPage: React.FC = () => {
         setError(res.message || 'Registration failed');
       }
     } catch (err: any) {
+      console.error('Registration Error:', err);
       const serverMessage = err.response?.data?.message;
       const validationErrors = err.response?.data?.errors;
 
@@ -62,8 +63,10 @@ export const RegisterPage: React.FC = () => {
         setError(validationErrors.map((e: any) => e.message).join(' '));
       } else if (serverMessage) {
         setError(serverMessage);
+      } else if (err.message) {
+        setError(err.message);
       } else {
-        setError('Registration failed. Please check your credentials and try again.');
+        setError('Registration failed. Please check backend connection.');
       }
     } finally {
       setLoading(false);
@@ -82,7 +85,7 @@ export const RegisterPage: React.FC = () => {
         </div>
 
         {error && (
-          <div className="p-3 bg-rose-50 border border-rose-200 rounded-xl text-xs text-rose-600 font-medium leading-relaxed">
+          <div className="p-3.5 bg-rose-50 border border-rose-200 rounded-xl text-xs text-rose-600 font-semibold leading-relaxed shadow-xs">
             {error}
           </div>
         )}
