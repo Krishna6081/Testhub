@@ -5,6 +5,7 @@ export const registerSchema = z.object({
   email: z.string().email('Please provide a valid email address'),
   password: z.string().min(6, 'Password must be at least 6 characters long'),
   confirmPassword: z.string().min(6, 'Confirm password must be at least 6 characters long'),
+  role: z.enum(['USER', 'ADMIN']).optional().default('USER'),
 }).refine((data) => data.password === data.confirmPassword, {
   message: 'Passwords do not match',
   path: ['confirmPassword'],

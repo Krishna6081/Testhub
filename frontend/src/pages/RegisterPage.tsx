@@ -6,7 +6,8 @@ import { setCredentials } from '../store/slices/authSlice';
 import { addToast } from '../store/slices/uiSlice';
 import { Input } from '../components/common/Input';
 import { Button } from '../components/common/Button';
-import { Brain, Mail, Lock, User as UserIcon } from 'lucide-react';
+import { Brain, Mail, Lock, User as UserIcon, ShieldAlert, GraduationCap } from 'lucide-react';
+import { Role } from '../types';
 
 export const RegisterPage: React.FC = () => {
   const navigate = useNavigate();
@@ -16,6 +17,7 @@ export const RegisterPage: React.FC = () => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
+  const [role, setRole] = useState<Role>('USER');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
 
@@ -45,12 +47,13 @@ export const RegisterPage: React.FC = () => {
         email: email.trim().toLowerCase(),
         password,
         confirmPassword,
+        role,
       });
 
       if (res.success) {
         dispatch(setCredentials({ user: res.data.user, token: res.data.token }));
-        dispatch(addToast({ type: 'success', message: 'Account created successfully! Welcome to TestHub.' }));
-        navigate('/dashboard');
+        dispatch(addToast({ type: 'success', message: `Account created successfully as ${role === 'ADMIN' ? 'Administrator' : 'Student'}!` }));
+        navigate(role === 'ADMIN' ? '/admin' : '/dashboard');
       } else {
         setError(res.message || 'Registration failed');
       }
@@ -91,6 +94,35 @@ export const RegisterPage: React.FC = () => {
         )}
 
         <form onSubmit={handleSubmit} className="space-y-4">
+          {/* Account Type / Role Selector */}
+          <div className="space-y-1.5">
+            <label className="block text-xs font-semibold text-slate-700">Account Role</label>
+            <div className="grid grid-cols-2 gap-3">
+              <button
+                type="button"
+                onClick={() => setRole('USER')}
+                className={`p-3 rounded-xl border text-xs font-bold flex items-center justify-center gap-2 transition-all ${
+                  role === 'USER'
+                    ? 'bg-brand-50 border-brand-500 text-brand-700 ring-2 ring-brand-500/20'
+                    : 'bg-white border-slate-200 text-slate-600 hover:bg-slate-50'
+                }`}
+              >
+                <GraduationCap className="w-4 h-4" /> Student
+              </button>
+              <button
+                type="button"
+                onClick={() => setRole('ADMIN')}
+                className={`p-3 rounded-xl border text-xs font-bold flex items-center justify-center gap-2 transition-all ${
+                  role === 'ADMIN'
+                    ? 'bg-purple-50 border-purple-500 text-purple-700 ring-2 ring-purple-500/20'
+                    : 'bg-white border-slate-200 text-slate-600 hover:bg-slate-50'
+                }`}
+              >
+                <ShieldAlert className="w-4 h-4" /> Administrator
+              </button>
+            </div>
+          </div>
+
           <Input
             label="Full Name"
             type="text"
@@ -132,7 +164,7 @@ export const RegisterPage: React.FC = () => {
           />
 
           <Button type="submit" className="w-full" isLoading={loading}>
-            Create Account
+            Create {role === 'ADMIN' ? 'Admin' : 'Student'} Account
           </Button>
         </form>
 

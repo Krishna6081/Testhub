@@ -7,7 +7,7 @@ import { AuthenticatedRequest } from '../middleware/auth';
 
 export const register = async (req: AuthenticatedRequest, res: Response) => {
   try {
-    const { name, email, password } = req.body;
+    const { name, email, password, role } = req.body;
     const cleanEmail = email ? email.trim().toLowerCase() : '';
 
     const existingUser = await prisma.user.findUnique({ where: { email: cleanEmail } });
@@ -16,13 +16,14 @@ export const register = async (req: AuthenticatedRequest, res: Response) => {
     }
 
     const hashedPassword = await hashPassword(password);
+    const assignedRole = role === 'ADMIN' ? 'ADMIN' : 'USER';
 
     const user = await prisma.user.create({
       data: {
         name: name.trim(),
         email: cleanEmail,
         password: hashedPassword,
-        role: 'USER',
+        role: assignedRole,
       },
       select: {
         id: true,
