@@ -31,7 +31,11 @@ export const LoginPage: React.FC = () => {
     setError('');
 
     try {
-      const res = await authService.login({ email, password });
+      const res = await authService.login({
+        email: email.trim().toLowerCase(),
+        password,
+      });
+
       if (res.success) {
         dispatch(setCredentials({ user: res.data.user, token: res.data.token }));
         dispatch(addToast({ type: 'success', message: `Welcome back, ${res.data.user.name}!` }));
@@ -40,7 +44,16 @@ export const LoginPage: React.FC = () => {
         setError(res.message || 'Login failed');
       }
     } catch (err: any) {
-      setError(err.response?.data?.message || 'Invalid email or password');
+      const serverMessage = err.response?.data?.message;
+      const validationErrors = err.response?.data?.errors;
+
+      if (Array.isArray(validationErrors) && validationErrors.length > 0) {
+        setError(validationErrors.map((e: any) => e.message).join(' '));
+      } else if (serverMessage) {
+        setError(serverMessage);
+      } else {
+        setError('Invalid email or password.');
+      }
     } finally {
       setLoading(false);
     }
@@ -58,7 +71,7 @@ export const LoginPage: React.FC = () => {
         </div>
 
         {error && (
-          <div className="p-3 bg-rose-50 border border-rose-200 rounded-xl text-xs text-rose-600 font-medium">
+          <div className="p-3 bg-rose-50 border border-rose-200 rounded-xl text-xs text-rose-600 font-medium leading-relaxed">
             {error}
           </div>
         )}

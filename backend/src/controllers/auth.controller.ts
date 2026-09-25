@@ -8,8 +8,9 @@ import { AuthenticatedRequest } from '../middleware/auth';
 export const register = async (req: AuthenticatedRequest, res: Response) => {
   try {
     const { name, email, password } = req.body;
+    const cleanEmail = email ? email.trim().toLowerCase() : '';
 
-    const existingUser = await prisma.user.findUnique({ where: { email: email.toLowerCase() } });
+    const existingUser = await prisma.user.findUnique({ where: { email: cleanEmail } });
     if (existingUser) {
       return sendError(res, 'Email address is already registered', 400);
     }
@@ -18,8 +19,8 @@ export const register = async (req: AuthenticatedRequest, res: Response) => {
 
     const user = await prisma.user.create({
       data: {
-        name,
-        email: email.toLowerCase(),
+        name: name.trim(),
+        email: cleanEmail,
         password: hashedPassword,
         role: 'USER',
       },
@@ -44,8 +45,9 @@ export const register = async (req: AuthenticatedRequest, res: Response) => {
 export const login = async (req: AuthenticatedRequest, res: Response) => {
   try {
     const { email, password } = req.body;
+    const cleanEmail = email ? email.trim().toLowerCase() : '';
 
-    const user = await prisma.user.findUnique({ where: { email: email.toLowerCase() } });
+    const user = await prisma.user.findUnique({ where: { email: cleanEmail } });
     if (!user) {
       return sendError(res, 'Invalid email or password', 401);
     }
@@ -100,7 +102,7 @@ export const getMe = async (req: AuthenticatedRequest, res: Response) => {
     });
 
     if (!user) {
-      return sendError(res, 'User not found', 44);
+      return sendError(res, 'User not found', 404);
     }
 
     return sendSuccess(res, 'Current user profile retrieved', user);

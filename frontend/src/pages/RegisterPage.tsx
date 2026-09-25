@@ -31,11 +31,22 @@ export const RegisterPage: React.FC = () => {
       return;
     }
 
+    if (password.length < 6) {
+      setError('Password must be at least 6 characters long.');
+      return;
+    }
+
     setLoading(true);
     setError('');
 
     try {
-      const res = await authService.register({ name, email, password, confirmPassword });
+      const res = await authService.register({
+        name: name.trim(),
+        email: email.trim().toLowerCase(),
+        password,
+        confirmPassword,
+      });
+
       if (res.success) {
         dispatch(setCredentials({ user: res.data.user, token: res.data.token }));
         dispatch(addToast({ type: 'success', message: 'Account created successfully! Welcome to TestHub.' }));
@@ -44,7 +55,16 @@ export const RegisterPage: React.FC = () => {
         setError(res.message || 'Registration failed');
       }
     } catch (err: any) {
-      setError(err.response?.data?.message || 'Registration failed. Email might already exist.');
+      const serverMessage = err.response?.data?.message;
+      const validationErrors = err.response?.data?.errors;
+
+      if (Array.isArray(validationErrors) && validationErrors.length > 0) {
+        setError(validationErrors.map((e: any) => e.message).join(' '));
+      } else if (serverMessage) {
+        setError(serverMessage);
+      } else {
+        setError('Registration failed. Please check your credentials and try again.');
+      }
     } finally {
       setLoading(false);
     }
@@ -62,7 +82,7 @@ export const RegisterPage: React.FC = () => {
         </div>
 
         {error && (
-          <div className="p-3 bg-rose-50 border border-rose-200 rounded-xl text-xs text-rose-600 font-medium">
+          <div className="p-3 bg-rose-50 border border-rose-200 rounded-xl text-xs text-rose-600 font-medium leading-relaxed">
             {error}
           </div>
         )}
